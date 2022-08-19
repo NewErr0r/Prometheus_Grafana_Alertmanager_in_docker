@@ -26,6 +26,18 @@
         notify:
           - Started and Enabled docker 
 
+      - name: Configure Firewalld
+        firewalld: 
+          port: "{{ item }}"
+          permanent: true 
+          state: enabled
+        loop:
+          - "9090/tcp"
+          - "9100/tcp" 
+          - "3000/tcp"
+        notify:
+          - Restarted Firewalld
+
       when:
         - ansible_os_family == "RedHat"
 
@@ -113,3 +125,8 @@
         name: docker 
         enabled: true 
         state: started
+
+    - name: Restarted Firewalld
+      service: 
+        name: firewalld 
+        state: restarted
