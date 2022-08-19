@@ -1,0 +1,13 @@
+Подготовка системы:
+
+1. Установка docker и docker-compose c последующей подготовкой системы:
+    # ansible-playbook install_docker.yaml
+
+2. Подключиться к серверу, запустить контейнеры:
+    # ssh root@<ip_address>
+    # cd /opt/prometheus_stack
+    # docker-compose up -d 
+
+http://<IP-адрес сервера>:9090 — страница Prometheus
+http://<IP-адрес сервера>:9100 — страница Node Exporter
+http://<IP-адрес сервера>:3000 — страница Grafana

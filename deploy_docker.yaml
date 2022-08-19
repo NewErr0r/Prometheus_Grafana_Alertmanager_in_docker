@@ -1,0 +1,115 @@
+---
+- name: Install docker and docker-compose on CentOS or Debian
+  hosts: all
+  become: true 
+
+  tasks: 
+    - block:   #======= Block for CentOS =======
+      - name: Install packages for docker on CentOS 
+        dnf:
+          name: "{{ packages }}"
+          state: latest
+        vars:
+          packages:
+            - yum-utils 
+            - device-mapper-persistent-data 
+            - lvm2
+
+      - name: Add repo for docker on CentOS 
+        get_url:
+          url: https://download.docker.com/linux/centos/docker-ce.repo
+          dest: /etc/yum.repos.d/docker-ce.repo
+
+      - name: Install docker on CentOS 
+        shell:  | 
+          dnf install -y docker-ce docker-ce-cli containerd.io --allowerasing
+        notify:
+          - Started and Enabled docker 
+
+      when:
+        - ansible_os_family == "RedHat"
+
+    - block:  #======= Block for Debian =======
+        - name: Update all packages on Debian 
+          apt: 
+            name: "*"
+            state: latest 
+            update_cache: yes 
+            force_apt_get: yes 
+
+        - name: Install packages for docker on Debian
+          apt: 
+            name: 
+            state: latest 
+            update_cache: yes 
+          vars: 
+            packages:
+              - git
+              - apt-transport-https
+              - ca-certificates
+              - wget
+              - software-properties-common
+              - gnupg2
+              - curl
+
+        - name: Add key from official docker repo on Debian
+          apt_key: 
+            url: https://download.docker.com/linux/debian/gpg
+            state: present
+
+        - name: Add docker repo on Debian
+          apt_repository:
+            repo: deb [arch=amd64] https://download.docker.com/linux/debian stretch stable
+            state: present
+
+        - name: Update all packages on Debian 
+          apt: 
+            name: "*"
+            state: latest 
+            update_cache: yes 
+            force_apt_get: yes 
+
+        - name: Install docker on Debian 
+          apt: 
+            name: docker-ce
+            state: latest 
+            update_cache: yes 
+          notify:
+            - Started and Enabled docker
+
+      when: 
+        - ansible_os_family == "Debian"
+
+    - name: Install docker-compose 
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.25.1-rc1/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: 'u+x,g+x'
+
+    - name: Creating directories where we will create our files
+      file: 
+        path: /opt/prometheus_stack/{{ item }}
+        state: directory 
+        recurse: yes 
+      loop: 
+        - prometheus
+        - grafana
+        - alertmanager
+        - blackbox
+
+    - name: Copy docker-compose file 
+      copy: 
+        src: ./docker-compose.yaml
+        dest: /opt/prometheus_stack
+
+    - name: Copy prometheus file 
+      copy: 
+        src: ./prometheus.yml
+        dest: /opt/prometheus_stack/prometheus
+
+  handlers:
+    - name: Started and Enabled docker
+      service: 
+        name: docker 
+        enabled: true 
+        state: started
